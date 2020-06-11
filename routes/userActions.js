@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
@@ -8,13 +9,15 @@ const verify = require('./verifyToken');
 const router = express.Router();
 
 router.post('/createUser', (req, res) => {
+    const hashedPass = saltHashPassword(req.body.password);
     User.findOne({ username: req.body.username }, (err, user) => {
         if (err || user) {
             res.send('User with that name already registered');
         } else {
             const user = new User({
                 username: req.body.username,
-                password: req.body.password
+                password: hashedPass.passwordHash,
+                salt: hashedPass.salt
             })
 
             user.save()
@@ -33,11 +36,18 @@ router.post('/createUser', (req, res) => {
 
 router.post('/login', (req, res) => {
     User.findOne({ username: req.body.username }, (err, user) => {
+        
         if (err || !user) {
             console.log(error);
             res.sendStatus(404);
         } else {
-            if (user.password === req.body.password) {
+            let hashedPass;
+            try {
+            hashedPass = sha512(req.body.password, user.salt);
+            } catch (err){
+                res.send(err);
+            }
+            if (user.password === hashedPass.passwordHash) {
                 const token = jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET);
                 res.header('auth-token', token).send(token);
             }
@@ -171,6 +181,7 @@ router.get('/getAllQuiz', (req, res) => {
                 quizMap[quiz._id] = quiz;
 
             });
+            
 
             res.send(quizMap);
         }
@@ -318,5 +329,48 @@ router.get('/getYourQuestions', verify, async (req, res) => {
 
     });
 });
+
+
+/**
+ * generates random string of characters i.e salt
+ * @function
+ * @param {number} length - Length of the random string.
+ */
+var genRandomString = function(length){
+    return crypto.randomBytes(Math.ceil(length/2))
+            .toString('hex') /** convert to hexadecimal format */
+            .slice(0,length);   /** return required number of characters */
+};
+
+/**
+ * hash password with sha512.
+ * @function
+ * @param {string} password - List of required fields.
+ * @param {string} salt - Data to be validated.
+ */
+var sha512 = function(password, salt){
+    var hash = crypto.createHmac('sha512', salt); /** Hashing algorithm sha512 */
+    hash.update(password);
+    var value = hash.digest('hex');
+    return {
+        salt:salt,
+        passwordHash:value
+    };
+};
+
+function saltHashPassword(userpassword) {
+    var salt = genRandomString(16); /** Gives us salt of length 16 */
+    var passwordData = sha512(userpassword, salt);
+    console.log('UserPassword = '+userpassword);
+    console.log('Passwordhash = '+passwordData.passwordHash);
+    console.log('nSalt = '+passwordData.salt);
+    console.log(salt);
+    return passwordData;
+}
+
+
+
+
+
 
 module.exports = router;

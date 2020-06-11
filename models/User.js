@@ -9,6 +9,10 @@ const UserSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    salt: {
+        type: String,
+        required: true
+    },
     createdQuiz: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Quiz' }],
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }]
