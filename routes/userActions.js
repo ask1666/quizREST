@@ -38,7 +38,7 @@ router.post('/login', (req, res) => {
     User.findOne({ username: req.body.username }, (err, user) => {
         
         if (err || !user) {
-            console.log(error);
+            console.log(err);
             res.sendStatus(404);
         } else {
             let hashedPass;
@@ -49,7 +49,7 @@ router.post('/login', (req, res) => {
             }
             if (user.password === hashedPass.passwordHash) {
                 const token = jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET);
-                res.header('auth-token', token).send(token);
+                res.header('authToken', token).send(token);
             }
         }
     });
@@ -94,14 +94,16 @@ router.get('/getAllUsers', (req, res) => {
 });
 
 router.put('/createQuiz', verify, (req, res) => {
-
+    console.log(req.body.quizName);
     User.findOne({ _id: req.userId }, (err, user) => {
         if (err) {
             console.log(err);
             res.sendStatus(403);
         } else {
             Quiz.findOne({ creator: req.userId, quizName: req.body.quizName }, (err, data) => {
+                
                 if (err || data) {
+                    console.log(err);
                     res.send('User already have quiz with that name');
                 } else if (!data) {
                     const quiz = new Quiz({
@@ -122,12 +124,14 @@ router.put('/createQuiz', verify, (req, res) => {
                             $push: { createdQuiz: quiz }      //$push - adding items to array 
                         }, (err, data) => {
                             if (err) {
-                                res.sendStatus(404);
+                                res.send(err);
+                                console.log(err);
                             } else {
                                 res.sendStatus(200);
                             }
                         });
                     } else {
+                        console.log(err);
                         res.sendStatus(403);
                     }
                 }
@@ -174,11 +178,11 @@ router.get('/getAllQuiz', (req, res) => {
         if (err) {
             console.log(err);
         } else {
-            var quizMap = {};
+            var quizMap = [];
 
             quiz.forEach(function (quiz) {
 
-                quizMap[quiz._id] = quiz;
+                quizMap.push(quiz);
 
             });
             
@@ -194,11 +198,11 @@ router.get('/getYourQuiz', verify, (req, res) => {
         if (err) {
             console.log(err);
         } else {
-            var quizMap = {};
+            var quizMap = [];
 
             quiz.forEach(function (quiz) {
 
-                quizMap[quiz._id] = quiz;
+                quizMap.push(quiz);
 
             });
 

@@ -3,11 +3,13 @@ const app = express();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const Quiz = require('./models/Quiz');
+const Cors = require('cors');
 require('dotenv/config');
 
 //Import Routes
 const userRoute = require('./routes/userActions');
 app.use(bodyParser.json());
+app.use(Cors());
 
 app.use('/userActions', userRoute);
 
