@@ -22,11 +22,9 @@ router.post('/createUser', (req, res) => {
 
             user.save()
                 .then(data => {
-                    //console.log(data);
                     res.sendStatus(200);
                 })
                 .catch(err => {
-                    console.log({ message: err });
                     res.sendStatus(500);
                 })
         }
@@ -38,7 +36,6 @@ router.post('/login', (req, res) => {
     User.findOne({ username: req.body.username }, (err, user) => {
         
         if (err || !user) {
-            console.log(err);
             res.sendStatus(404);
         } else {
             let hashedPass;
@@ -58,17 +55,15 @@ router.post('/login', (req, res) => {
 router.delete('/deleteUser', verify, (req, res) => {
     User.findOneAndRemove({ _id: req.userId }, (err, user) => {
         if (err || !user) {
-            console.log(err);
             res.sendStatus(401);
         } else {
             Quiz.deleteMany({ creator: req.userId }, (err, quiz) => {
                 if (err) {
-                    console.log('user has no quiz');
+                    res.send('user has no quiz');
                 } else {
-                    console.log('also deleted' + quiz.quizName);
+                    res.send('also deleted' + quiz.quizName);
                 }
             })
-            //console.log(user);
             res.sendStatus(200);
         }
     });
@@ -77,7 +72,7 @@ router.delete('/deleteUser', verify, (req, res) => {
 router.get('/getAllUsers', (req, res) => {
     User.find({}, function (err, users) {
         if (err) {
-            console.log(err);
+            res.send(err);
         } else {
             var userMap = {};
 
@@ -94,16 +89,14 @@ router.get('/getAllUsers', (req, res) => {
 });
 
 router.put('/createQuiz', verify, (req, res) => {
-    console.log(req.body.quizName);
+    
     User.findOne({ _id: req.userId }, (err, user) => {
         if (err) {
-            console.log(err);
             res.sendStatus(403);
         } else {
             Quiz.findOne({ creator: req.userId, quizName: req.body.quizName }, (err, data) => {
                 
                 if (err || data) {
-                    console.log(err);
                     res.send('User already have quiz with that name');
                 } else if (!data) {
                     const quiz = new Quiz({
@@ -117,7 +110,7 @@ router.put('/createQuiz', verify, (req, res) => {
 
                             })
                             .catch(err => {
-                                console.log({ message: err });
+                                res.send({ message: err });
                             })
 
                         User.updateOne({ _id: req.userId }, {
@@ -125,13 +118,18 @@ router.put('/createQuiz', verify, (req, res) => {
                         }, (err, data) => {
                             if (err) {
                                 res.send(err);
-                                console.log(err);
                             } else {
-                                res.sendStatus(200);
+                                Quiz.findOne({quizName: req.body.quizName}, (err,createdQuiz) => {
+                                    if (err) {res.send(err)} 
+                                    else {
+                                        res.send(createdQuiz._id);
+                                    }
+                                })
+                                
                             }
                         });
                     } else {
-                        console.log(err);
+                        
                         res.sendStatus(403);
                     }
                 }
@@ -145,7 +143,6 @@ router.delete('/deleteQuiz', verify, async (req, res) => {
 
     const quiz = await Quiz.findOne({ quizName: req.body.quizName }, (err, quiz) => {
         if (err || !quiz) {
-            console.log(err);
             res.sendStatus(404);
         }
     });
@@ -155,13 +152,13 @@ router.delete('/deleteQuiz', verify, async (req, res) => {
             $pull: { createdQuiz: quiz._id }
         }, (err, user) => {
             if (err) {
-                res.sendStatus(404);
+                res.sendStatus(401);
             }
         })
 
         Quiz.findOneAndRemove({ quizName: req.body.quizName }, (err, quiz) => {
             if (err) {
-                console.log(404);
+                res.send(err);
             } else {
                 res.sendStatus(200);
             }
@@ -176,7 +173,7 @@ router.delete('/deleteQuiz', verify, async (req, res) => {
 router.get('/getAllQuiz', (req, res) => {
     Quiz.find({}, function (err, quiz) {
         if (err) {
-            console.log(err);
+            res.send(err);
         } else {
             var quizMap = [];
 
@@ -196,7 +193,7 @@ router.get('/getAllQuiz', (req, res) => {
 router.get('/getYourQuiz', verify, (req, res) => {
     Quiz.find({ creator: req.userId }, function (err, quiz) {
         if (err) {
-            console.log(err);
+            res.send(err);
         } else {
             var quizMap = [];
 
@@ -212,6 +209,20 @@ router.get('/getYourQuiz', verify, (req, res) => {
     });
 });
 
+router.post('/getQuiz', (req,res) => {
+    if (req.body.quizId) {
+        Quiz.findById(req.body.quizId, (err, quiz) => {
+            if (err) {res.send(err);}
+            else {
+                
+                res.send(quiz);
+            }
+        });
+    } else {
+        res.sendStatus(403);
+    }
+})
+
 router.put('/addQuestion', verify, (req, res) => {
     Quiz.findOne({ creator: req.userId, quizName: req.body.quizName }, (err, quiz) => {
         if (err || !quiz) {
@@ -219,7 +230,6 @@ router.put('/addQuestion', verify, (req, res) => {
         } else {
             Question.findOne({ quiz: quiz._id, question: req.body.question }, (err, ques) => {
                 if (err || ques) {
-                    console.log(err);
                     res.send('already question like that in your quiz');
                 } else {
                     const question = new Question({
@@ -234,7 +244,7 @@ router.put('/addQuestion', verify, (req, res) => {
 
                         })
                         .catch(err => {
-                            console.log({ message: err });
+                            res.send({ message: err });
                         })
 
                     Quiz.updateOne({ quizName: req.body.quizName }, {
@@ -257,28 +267,24 @@ router.delete('/deleteQuestion', verify, async (req, res) => {
 
     const quiz = await Quiz.findOne({ quizName: req.body.quizName, creator: req.userId }, (err, quiz) => {
         if (err || !quiz) {
-            console.log(err);
             res.sendStatus(404);
         }
     });
 
     Question.findOne({ question: req.body.question, quiz: quiz._id }, (err, question) => {
         if (err || !question) {
-            console.log(err);
             res.sendStatus(404);
         } else {
             Quiz.updateOne({ creator: req.userId, quizName: req.body.quizName }, {
                 $pull: { questions: question._id }
             }, (err, question) => {
                 if (err) {
-                    console.log(err);
                     res.sendStatus(404);
                 }
             })
 
             Question.findOneAndRemove({ quiz: quiz._id, question: req.body.question }, (err, question) => {
                 if (err) {
-                    console.log(err);
                     res.sendStatus(404)
                 } else {
                     res.sendStatus(200);
@@ -292,7 +298,7 @@ router.delete('/deleteQuestion', verify, async (req, res) => {
 router.get('/getQuestions', (req, res) => {
     Question.find({}, function (err, question) {
         if (err) {
-            console.log(err);
+            res.send(err);
         } else {
             var questionMap = {};
 
@@ -318,7 +324,7 @@ router.get('/getYourQuestions', verify, async (req, res) => {
 
     Question.find({quiz: quiz._id}, function (err, question) {
         if (err) {
-            console.log(err);
+            res.send(err);
         } else {
             var questionMap = {};
 
@@ -365,10 +371,6 @@ var sha512 = function(password, salt){
 function saltHashPassword(userpassword) {
     var salt = genRandomString(16); /** Gives us salt of length 16 */
     var passwordData = sha512(userpassword, salt);
-    console.log('UserPassword = '+userpassword);
-    console.log('Passwordhash = '+passwordData.passwordHash);
-    console.log('nSalt = '+passwordData.salt);
-    console.log(salt);
     return passwordData;
 }
 
