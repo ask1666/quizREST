@@ -9,7 +9,7 @@ const verify = require('./verifyToken');
 const router = express.Router();
 
 router.post('/createUser', (req, res) => {
-    const hashedPass = saltHashPassword(req.body.password);
+    const hashedPass = saltHashPassword(req.body.password);     //saves the hashed password and the salt in db.
     User.findOne({ username: req.body.username }, (err, user) => {
         if (err || user) {
             res.send('User with that name already registered');
@@ -43,7 +43,7 @@ router.post('/login', (req, res) => {
         } else {
             let hashedPass;
             try {
-            hashedPass = sha512(req.body.password, user.salt);
+            hashedPass = sha512(req.body.password, user.salt);  //hash the password with the salt for the user stored in the db.
             } catch (err){
                 res.send(err);
             }
