@@ -61,7 +61,7 @@ router.delete('/deleteUser', verify, (req, res) => {
                 if (err) {
                     res.send('user has no quiz');
                 } else {
-                    res.send('also deleted' + quiz.quizName);
+                    
                 }
             })
             res.sendStatus(200);
@@ -160,6 +160,11 @@ router.delete('/deleteQuiz', verify, async (req, res) => {
             if (err) {
                 res.send(err);
             } else {
+                Question.deleteMany({ quiz: quiz._id}, (err, question) => {
+                    if (err)
+                        res.send(err)
+                        
+                })
                 res.sendStatus(200);
             }
         });
@@ -321,23 +326,24 @@ router.post('/getYourQuestions', verify, async (req, res) => {
             res.sendStatus(404);
         }
     });
+    if (quiz) {
+        Question.find({quiz: quiz._id}, function (err, question) {
+            if (err) {
+                res.send(err);
+            } else {
+                var questionList = [];
 
-    Question.find({quiz: quiz._id}, function (err, question) {
-        if (err) {
-            res.send(err);
-        } else {
-            var questionList = [];
+                question.forEach(function (question) {
 
-            question.forEach(function (question) {
+                    questionList.push(question)
 
-                questionList.push(question)
+                });
 
-            });
+                res.send(questionList);
+            }
 
-            res.send(questionList);
-        }
-
-    });
+        });
+    }
 });
 
 
