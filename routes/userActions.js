@@ -236,7 +236,7 @@ router.put('/addQuestion', verify, (req, res) => {
                         quiz: quiz,
                         question: req.body.question,
                         rightAnswer: req.body.rightAnswer,
-                        $push: { falseAnswers: req.body.falseAnswer },
+                        falseAnswers: req.body.falseAnswer,
                     });
 
                     question.save()
@@ -314,7 +314,7 @@ router.get('/getQuestions', (req, res) => {
     });
 });
 
-router.get('/getYourQuestions', verify, async (req, res) => {
+router.post('/getYourQuestions', verify, async (req, res) => {
 
     const quiz = await Quiz.findOne({creator: req.userId, quizName: req.body.quizName}, (err,quiz) => {
         if (err || !quiz) {
@@ -326,15 +326,15 @@ router.get('/getYourQuestions', verify, async (req, res) => {
         if (err) {
             res.send(err);
         } else {
-            var questionMap = {};
+            var questionList = [];
 
             question.forEach(function (question) {
 
-                questionMap[question._id] = question;
+                questionList.push(question)
 
             });
 
-            res.send(questionMap);
+            res.send(questionList);
         }
 
     });
