@@ -5,6 +5,7 @@ const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
 const jwt = require('jsonwebtoken');
 const verify = require('./verifyToken');
+const { Mongoose } = require('mongoose');
 
 const router = express.Router();
 
@@ -46,7 +47,8 @@ router.post('/login', (req, res) => {
             }
             if (user.password === hashedPass.passwordHash) {
                 const token = jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET);
-                res.header('authToken', token).send(token);
+                //res.header('authToken', token).send(token);
+                res.send( {authToken: token, userid: user._id})
             }
         }
     });
@@ -87,6 +89,18 @@ router.get('/getAllUsers', (req, res) => {
 
     });
 });
+
+router.get('/getUserById', (req, res) => {
+    User.findById(req.query.userid, (err, user) => {
+        if (err) {
+            res.send(err);
+        } else if (!user) {
+            res.send('id does not match!')
+        } else {
+            res.send(user);
+        }
+    });
+})
 
 router.put('/createQuiz', verify, (req, res) => {
     
@@ -319,9 +333,9 @@ router.get('/getQuestions', (req, res) => {
     });
 });
 
-router.post('/getYourQuestions', verify, async (req, res) => {
+router.post('/getYourQuestions', async (req, res) => {
 
-    const quiz = await Quiz.findOne({creator: req.userId, quizName: req.body.quizName}, (err,quiz) => {
+    const quiz = await Quiz.findOne({creator: req.body.userid, quizName: req.body.quizName}, (err,quiz) => {
         if (err || !quiz) {
             res.sendStatus(404);
         }
@@ -330,6 +344,7 @@ router.post('/getYourQuestions', verify, async (req, res) => {
         Question.find({quiz: quiz._id}, function (err, question) {
             if (err) {
                 res.send(err);
+                console.log(err);
             } else {
                 var questionList = [];
 

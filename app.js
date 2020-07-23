@@ -23,7 +23,9 @@ mongoose.connect(
     process.env.DB_CONNECTION, 
     {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false},
 )
-.then(res => console.log("connected to DB"))
+.then(res => {
+    console.log("connected to DB");
+})
 .catch(err => console.log(err))
 
 /* Quiz.deleteOne({quizName: "testQuiz123"}, (err,quiz) => {
